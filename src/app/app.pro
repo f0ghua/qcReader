@@ -27,13 +27,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
-    worker.cpp
+    worker.cpp \
+    searchdialog.cpp
 
 HEADERS += \
     mainwindow.h \
-    worker.h
+    worker.h \
+    searchdialog.h
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    searchdialog.ui
 
 include($${LIBPATH_QAPPLOGING}/QAppLogging.pri)
