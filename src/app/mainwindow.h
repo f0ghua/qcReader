@@ -19,8 +19,9 @@ public:
     ~MainWindow();
 
 protected:
-    void mousePressEvent(QMouseEvent *event);
-    void mouseMoveEvent(QMouseEvent *event);
+    // void mousePressEvent(QMouseEvent *event);
+    // void mouseMoveEvent(QMouseEvent *event);
+    bool eventFilter(QObject *obj, QEvent *event);
     void keyPressEvent(QKeyEvent *event);
 
 private slots:
@@ -29,8 +30,11 @@ private slots:
 
 private:
     void setWindowStyle();
+    int openFile();
     int loadBook();
-    int searchBook();
+    void searchBook();
+    void readSettings();
+    void saveSettings();
     void startWorker();
     void stopWorker();
 
@@ -39,6 +43,8 @@ private:
     QThread *m_workThread = NULL;
     QPoint m_oldPosition;
     double m_windowOpacity = 0.5;
+    int m_cursorPos = 0;
+    QString m_fileName;
 };
 
 #endif // MAINWINDOW_H

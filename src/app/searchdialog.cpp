@@ -5,6 +5,7 @@ SearchDialog::SearchDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SearchDialog)
 {
+    //setStyleSheet("background: none; border: 2px;");
     ui->setupUi(this);
 }
 

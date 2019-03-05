@@ -2,6 +2,8 @@
 #include "ui_mainwindow.h"
 #include "worker.h"
 #include "searchdialog.h"
+#include "settingsmanager.h"
+#include "QAppLogging.h"
 
 #include <QThread>
 #include <QDebug>
@@ -13,12 +15,15 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     setWindowStyle();
+    qApp->installEventFilter(this);
 
+    readSettings();
     startWorker();
 }
 
 MainWindow::~MainWindow()
 {
+    saveSettings();
     stopWorker();
     delete ui;
 }
@@ -26,10 +31,18 @@ MainWindow::~MainWindow()
 void MainWindow::setWindowStyle()
 {
     setWindowOpacity(m_windowOpacity);
-    setStyleSheet("background: white; border: 0px;");
-    //setStyleSheet("border: 0px;");
+    setStyleSheet("#MainWindow #plainTextEdit {background: white; border: 0px;}"
+                  "#centralWidget {background: white; border: 0px;}"
+                  "#mainToolBar {background: white; border: 0px;}"
+                  "#menuBar {background: white; border: 0px;}"
+                  "#statusBar {background: white; border: 0px;}"
+                  );
+    //setStyleSheet("background: white; border: 0px;");
+    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
+#if defined(Q_OS_WIN)
+    setWindowFlags(windowFlags() | Qt::WindowMinimizeButtonHint);
+#endif
     setAttribute(Qt::WA_TranslucentBackground);
-    setWindowFlags(Qt::FramelessWindowHint);
 
     ui->plainTextEdit->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->plainTextEdit->setPlaceholderText(tr("CustomContextMenu"));
@@ -60,37 +73,69 @@ void MainWindow::onPlainTextEditActions()
     } else if (ac->text() == "Search") {
         searchBook();
     } else if (ac->text() == "Open") {
-        loadBook();
+        openFile();
     }
     qDebug() << ac->text().toStdString().c_str();
 }
 
-int MainWindow::loadBook()
+int MainWindow::openFile()
 {
     QString fileName = QFileDialog::getOpenFileName(this,
         tr("Open"), QString(), tr("Txt Files (*.txt);;All Files (*.*)"));
     if (fileName.isEmpty())
         return -1;
 
-    QFile inFile(fileName);
+    m_fileName = fileName;
+    return loadBook();
+}
+
+int MainWindow::loadBook()
+{
+    if (m_fileName.isEmpty())
+        return -1;
+
+    QFile inFile(m_fileName);
     if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return -1;
     }
 
     ui->plainTextEdit->setPlainText(inFile.readAll());
 
+    // reload the cursor
+    QTextCursor cursor = ui->plainTextEdit->textCursor();
+    cursor.setPosition(m_cursorPos, QTextCursor::MoveAnchor);
+    ui->plainTextEdit->setTextCursor(cursor);
+
     return 0;
 }
 
-int MainWindow::searchBook()
+void MainWindow::searchBook()
 {
-    SearchDialog dialog;
+    SearchDialog dialog(this);
     connect(&dialog, &SearchDialog::search, this, [=](QString text){
         ui->plainTextEdit->find(text);
     });
     dialog.exec();
 }
 
+void MainWindow::readSettings()
+{
+    QSettings *settings = SettingsManager::instance()->settings();
+    m_cursorPos = settings->value("cursor", 0).toInt();
+    m_fileName = settings->value("file", QString()).toString();
+
+    loadBook();
+}
+
+void MainWindow::saveSettings()
+{
+    int cursorPos = ui->plainTextEdit->textCursor().position();
+    QSettings *settings = SettingsManager::instance()->settings();
+    settings->setValue("cursor", cursorPos);
+    settings->setValue("file", m_fileName);
+}
+
+#if 0
 void MainWindow::mousePressEvent(QMouseEvent *event)
 {
     //if (event->buttons().testFlag(Qt::MiddleButton))
@@ -108,19 +153,54 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
         m_oldPosition = event->globalPos();
     }
 }
+#endif
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+
+    if ((obj == ui->plainTextEdit) &&
+            (event->type() == QEvent::MouseButtonPress)) {
+        QMouseEvent *ev = static_cast<QMouseEvent *>(event);
+        if (ev->buttons() & Qt::MiddleButton) {
+            m_oldPosition = ev->globalPos();
+        }
+    }
+
+    if ((obj == ui->plainTextEdit || obj == ui->plainTextEdit->viewport()) &&
+            (event->type() == QEvent::MouseMove)) {
+        QMouseEvent *ev = static_cast<QMouseEvent *>(event);
+        if (ev->buttons() & Qt::MiddleButton) {
+            const QPoint delta = ev->globalPos() - m_oldPosition;
+            move(x()+delta.x(), y()+delta.y());
+            m_oldPosition = ev->globalPos();
+        }
+    }
+
+    return QObject::eventFilter(obj, event);
+}
 
 void MainWindow::keyPressEvent(QKeyEvent* event)
 {
-    if( event->key() == Qt::Key_F11 ) {
+    switch (event->key()) {
+    case (Qt::Key_F11):
         if (m_windowOpacity > 0) {
             m_windowOpacity -= 0.1;
         }
         setWindowOpacity(m_windowOpacity);
-    } else if( event->key() == Qt::Key_F12 ) {
+        break;
+    case (Qt::Key_F12):
         if (m_windowOpacity < 1) {
             m_windowOpacity += 0.1;
         }
         setWindowOpacity(m_windowOpacity);
+        break;
+    case (Qt::Key_F):
+        if (event->modifiers() & Qt::ControlModifier) {
+            searchBook();
+        }
+        break;
+    default:
+        break;
     }
 }
 

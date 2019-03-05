@@ -28,12 +28,15 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     worker.cpp \
-    searchdialog.cpp
+    searchdialog.cpp \
+    settingsmanager.cpp
 
 HEADERS += \
     mainwindow.h \
     worker.h \
-    searchdialog.h
+    searchdialog.h \
+    appconstants.h \
+    settingsmanager.h
 
 FORMS += \
     mainwindow.ui \
