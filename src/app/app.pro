@@ -42,4 +42,7 @@ FORMS += \
     mainwindow.ui \
     searchdialog.ui
 
+RC_FILE = app.rc
+
 include($${LIBPATH_QAPPLOGING}/QAppLogging.pri)
+
