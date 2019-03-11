@@ -45,4 +45,4 @@ FORMS += \
 RC_FILE = app.rc
 
 include($${LIBPATH_QAPPLOGING}/QAppLogging.pri)
-
+include($${LIBPATH_LIBQXT}/libqxt.pri)

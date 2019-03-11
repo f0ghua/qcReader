@@ -5,6 +5,7 @@
 
 class Worker;
 class QThread;
+class QxtGlobalShortcut;
 
 namespace Ui {
 class MainWindow;
@@ -45,6 +46,8 @@ private:
     double m_windowOpacity = 0.5;
     int m_cursorPos = 0;
     QString m_fileName;
+    QMenu *m_rlMenu = NULL;
+    QxtGlobalShortcut *m_globalShortcut;
 };
 
 #endif // MAINWINDOW_H

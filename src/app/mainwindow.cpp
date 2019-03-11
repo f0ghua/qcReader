@@ -4,6 +4,7 @@
 #include "searchdialog.h"
 #include "settingsmanager.h"
 #include "QAppLogging.h"
+#include "qxtglobalshortcut.h"
 
 #include <QThread>
 #include <QDebug>
@@ -16,6 +17,16 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     setWindowStyle();
     qApp->installEventFilter(this);
+
+    QxtGlobalShortcut* shortcut = new QxtGlobalShortcut(this);
+    connect(shortcut, &QxtGlobalShortcut::activated, this, [&]{
+        if (this->isVisible()) {
+            this->hide();
+        } else {
+            this->show();
+        }
+    });
+    shortcut->setShortcut(QKeySequence("F1"));
 
     readSettings();
     startWorker();
@@ -52,16 +63,24 @@ void MainWindow::setWindowStyle()
 
 void MainWindow::onPlainTextEditContext()
 {
-    QMenu tmpMenu;
-    QMenu *menu = &tmpMenu; //new QMenu(this);
-    QAction *a1 = menu->addAction("Open");
-    QAction *a2 = menu->addAction("Search");
-    QAction *a3 = menu->addAction("Exit");
-    connect(a1, &QAction::triggered, this, &MainWindow::onPlainTextEditActions);
-    connect(a2, &QAction::triggered, this, &MainWindow::onPlainTextEditActions);
-    connect(a3, &QAction::triggered, this, &MainWindow::onPlainTextEditActions);
+    if (m_rlMenu == NULL) {
+        m_rlMenu = new QMenu(this);
+        QMenu *menu = m_rlMenu; //new QMenu(this);
 
-    menu->exec(QCursor::pos());
+        QAction *actOpen = menu->addAction("Open");
+        QAction *actSearch = menu->addAction("Search");
+        QAction *actOnTop = menu->addAction("AlwaysOnTop");
+        actOnTop->setCheckable(true);
+        actOnTop->setChecked(false);
+        QAction *actExit = menu->addAction("Exit");
+
+        connect(actOpen, &QAction::triggered, this, &MainWindow::onPlainTextEditActions);
+        connect(actSearch, &QAction::triggered, this, &MainWindow::onPlainTextEditActions);
+        connect(actOnTop, &QAction::triggered, this, &MainWindow::onPlainTextEditActions);
+        connect(actExit, &QAction::triggered, this, &MainWindow::onPlainTextEditActions);
+    }
+
+    m_rlMenu->exec(QCursor::pos());
 }
 
 void MainWindow::onPlainTextEditActions()
@@ -74,7 +93,19 @@ void MainWindow::onPlainTextEditActions()
         searchBook();
     } else if (ac->text() == "Open") {
         openFile();
+    } else if (ac->text() == "AlwaysOnTop") {
+        Qt::WindowFlags flags = windowFlags();
+        if (ac->isChecked()) {
+            ac->setChecked(true);
+            flags |= Qt::WindowStaysOnTopHint;
+        } else {
+            ac->setChecked(false);
+            flags &= ~Qt::WindowStaysOnTopHint;
+        }
+        setWindowFlags(flags);
+        this->show();
     }
+
     qDebug() << ac->text().toStdString().c_str();
 }
 
